@@ -68,7 +68,12 @@ export function Navbar({ title }: { title?: string }) {
       <ThemeToggle />
 
       {/* Notifications */}
-      <Button variant="ghost" size="icon-sm" className="relative">
+      <Button
+        variant="ghost"
+        size="icon-sm"
+        className="relative"
+        onClick={() => router.push("/notifications")}
+      >
         <Bell className="h-4 w-4" />
         <span className="absolute top-1 right-1 h-1.5 w-1.5 rounded-full bg-primary" />
       </Button>

@@ -23,4 +23,15 @@ module.exports = {
     url: process.env.SUPABASE_URL,
     serviceRoleKey: process.env.SUPABASE_SERVICE_ROLE_KEY,
   },
+  groq: {
+    apiKey: process.env.GROQ_API_KEY,
+    model: process.env.GROQ_MODEL || 'llama-3.3-70b-versatile',
+  },
+  openai: {
+    apiKey: process.env.OPENAI_API_KEY,
+    model: process.env.OPENAI_MODEL || 'gpt-4o-mini',
+  },
+  automation: {
+    webhookSecret: process.env.AUTOMATION_WEBHOOK_SECRET || 'dev_automation_secret_123',
+  },
 };

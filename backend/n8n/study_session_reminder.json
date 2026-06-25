@@ -1,0 +1,51 @@
+{
+  "name": "Study Session Reminder",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "*/15 * * * *"
+            }
+          ]
+        }
+      },
+      "id": "node-1",
+      "name": "Check Every 15 Mins",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        200,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "message": "Reminder: You have a scheduled study session starting in 15 minutes."
+      },
+      "id": "node-2",
+      "name": "Send Session WhatsApp",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [
+        450,
+        300
+      ]
+    }
+  ],
+  "connections": {
+    "Check Every 15 Mins": {
+      "main": [
+        [
+          {
+            "node": "Send Session WhatsApp",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  }
+}

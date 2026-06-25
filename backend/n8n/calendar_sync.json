@@ -1,0 +1,86 @@
+{
+  "name": "Calendar Sync",
+  "nodes": [
+    {
+      "parameters": {
+        "pollTimes": {
+          "rule": [
+            {
+              "field": "cronExpression",
+              "expression": "*/10 * * * *"
+            }
+          ]
+        }
+      },
+      "id": "node-1",
+      "name": "Google Calendar Trigger",
+      "type": "n8n-nodes-base.googleCalendarTrigger",
+      "typeVersion": 1,
+      "position": [
+        200,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://localhost:5000/api/v1/calendar-events",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "Bearer dev_token"
+            }
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "provider_event_id",
+              "value": "={{$json.id}}"
+            },
+            {
+              "name": "title",
+              "value": "={{$json.summary}}"
+            },
+            {
+              "name": "description",
+              "value": "={{$json.description}}"
+            },
+            {
+              "name": "start_time",
+              "value": "={{$json.start.dateTime}}"
+            },
+            {
+              "name": "end_time",
+              "value": "={{$json.end.dateTime}}"
+            }
+          ]
+        }
+      },
+      "id": "node-2",
+      "name": "Add to Local Calendar",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [
+        450,
+        300
+      ]
+    }
+  ],
+  "connections": {
+    "Google Calendar Trigger": {
+      "main": [
+        [
+          {
+            "node": "Add to Local Calendar",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  }
+}

@@ -6,7 +6,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import {
   LayoutDashboard, CheckSquare, Calendar, BookOpen, Users,
   Briefcase, Layers, Bot, Settings, User, X, GraduationCap,
-  ClipboardList,
+  ClipboardList, Zap, Bell, HelpCircle,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useUIStore } from "@/store/ui.store";
@@ -24,11 +24,14 @@ const navItems = [
   { label: "Placement", href: "/placement", icon: Briefcase },
   { label: "Flashcards", href: "/flashcards", icon: Layers },
   { label: "AI Chat", href: "/ai-chat", icon: Bot },
+  { label: "Automation", href: "/automation", icon: Zap },
+  { label: "Notifications", href: "/notifications", icon: Bell },
 ];
 
 const bottomItems = [
   { label: "Profile", href: "/profile", icon: User },
   { label: "Settings", href: "/settings", icon: Settings },
+  { label: "Help Center", href: "/help", icon: HelpCircle },
 ];
 
 export function Sidebar() {

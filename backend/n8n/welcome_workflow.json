@@ -1,0 +1,87 @@
+{
+  "name": "Welcome Workflow",
+  "nodes": [
+    {
+      "parameters": {
+        "path": "welcome-trigger",
+        "options": {}
+      },
+      "id": "node-1",
+      "name": "Webhook Trigger",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [
+        250,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "message": "Welcome to CampusFlow! Your account is active. Start organizing your schedule and deadlines dynamically."
+      },
+      "id": "node-2",
+      "name": "Send Welcome WhatsApp",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [
+        480,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "workflowId": "n8n_logging_helper",
+        "options": {
+          "workflowParameters": {
+            "parameters": [
+              {
+                "name": "workflow_name",
+                "value": "Welcome Workflow"
+              },
+              {
+                "name": "status",
+                "value": "success"
+              },
+              {
+                "name": "message",
+                "value": "Welcome notification message sent successfully."
+              }
+            ]
+          }
+        }
+      },
+      "id": "node-3",
+      "name": "Log Success",
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1,
+      "position": [
+        700,
+        300
+      ]
+    }
+  ],
+  "connections": {
+    "Webhook Trigger": {
+      "main": [
+        [
+          {
+            "node": "Send Welcome WhatsApp",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send Welcome WhatsApp": {
+      "main": [
+        [
+          {
+            "node": "Log Success",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  }
+}

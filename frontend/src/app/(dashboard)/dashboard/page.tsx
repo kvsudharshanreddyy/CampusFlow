@@ -1,51 +1,46 @@
 "use client";
 
 import { motion } from "framer-motion";
-import {
-  CheckSquare, Calendar, ClipboardList, Briefcase,
-  TrendingUp, Bot, Plus, ArrowRight,
-} from "lucide-react";
-import { StatCard } from "@/components/dashboard/StatCard";
-import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
 import { useAuthStore } from "@/store/auth.store";
-import Link from "next/link";
-import {
-  AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
-} from "recharts";
+import { StatsRow } from "@/components/dashboard/StatsRow";
+import { QuickActions } from "@/components/dashboard/QuickActions";
+import { TodaySchedule } from "@/components/dashboard/TodaySchedule";
+import { UpcomingDeadlines } from "@/components/dashboard/UpcomingDeadlines";
+import { AttendanceCard } from "@/components/dashboard/AttendanceCard";
+import { NotificationsPanel } from "@/components/dashboard/NotificationsPanel";
+import { AutomationStatus } from "@/components/dashboard/AutomationStatus";
+import { AITip } from "@/components/dashboard/AITip";
+import { RecentActivities } from "@/components/dashboard/RecentActivities";
+import { TaskManager } from "@/components/dashboard/TaskManager";
+import { Skeleton } from "@/components/ui/skeleton";
+import dynamic from "next/dynamic";
 
-const studyData = [
-  { day: "Mon", hours: 3 },
-  { day: "Tue", hours: 5 },
-  { day: "Wed", hours: 2 },
-  { day: "Thu", hours: 6 },
-  { day: "Fri", hours: 4 },
-  { day: "Sat", hours: 7 },
-  { day: "Sun", hours: 3 },
-];
+const StudyChart = dynamic(
+  () => import("@/components/dashboard/StudyChart").then((mod) => mod.StudyChart),
+  {
+    loading: () => <Skeleton className="h-[300px] w-full rounded-xl" />,
+    ssr: false,
+  }
+);
 
-const recentTasks = [
-  { title: "CS101 Assignment 3", subject: "CS101", due: "Tomorrow", status: "pending" },
-  { title: "Calculus Problem Set", subject: "MA201", due: "In 3 days", status: "in-progress" },
-  { title: "AI Lab Report", subject: "AI301", due: "Next week", status: "completed" },
-  { title: "Database Design ER Diagram", subject: "DB201", due: "In 5 days", status: "pending" },
-];
-
-const upcomingEvents = [
-  { title: "CS101 Mid-sem Exam", date: "Jun 28", type: "exam" },
-  { title: "Project Submission", date: "Jun 30", type: "deadline" },
-  { title: "Campus Placement Drive", date: "Jul 2", type: "placement" },
-];
-
-const statusColors: Record<string, "success" | "warning" | "secondary" | "default"> = {
-  completed: "success",
-  "in-progress": "warning",
-  pending: "secondary",
-};
+import { useDashboardStats } from "@/hooks/useDashboardStats";
+import { useTodayEvents, useAttendanceSummary, useAutomationLogs } from "@/hooks/useAppData";
+import { useUpcomingTasks } from "@/hooks/useTasks";
+import { useNotifications } from "@/hooks/useNotifications";
+import { useAIHistory } from "@/hooks/useAIHistory";
 
 export default function DashboardPage() {
   const { user } = useAuthStore();
+
+  // Queries
+  const { data: stats, isLoading: statsLoading } = useDashboardStats();
+  const { data: todayEvents, isLoading: todayEventsLoading } = useTodayEvents();
+  const { data: upcomingTasks, isLoading: upcomingTasksLoading } = useUpcomingTasks();
+  const { data: attendanceSummary, isLoading: attendanceLoading } = useAttendanceSummary();
+  const { data: notifications, isLoading: notificationsLoading } = useNotifications(false);
+  const { data: automationLogs, isLoading: automationLoading } = useAutomationLogs();
+  const { data: aiHistory, isLoading: aiLoading } = useAIHistory(10);
+
   const greeting = () => {
     const h = new Date().getHours();
     if (h < 12) return "Good morning";
@@ -53,182 +48,94 @@ export default function DashboardPage() {
     return "Good evening";
   };
 
+  const username = user?.email?.split("@")[0] ?? "Student";
+
+  // Calculate average attendance
+  const avgAttendance = stats?.attendance?.average_percentage ?? 0;
+
+  // Grab latest AI response for a tip if available
+  const latestAiResponse = aiHistory && aiHistory.length > 0 ? aiHistory[0].response : undefined;
+
   return (
-    <div className="p-5 lg:p-6 space-y-6 max-w-7xl mx-auto">
-      {/* Welcome */}
+    <div className="p-4 lg:p-6 space-y-6 max-w-7xl mx-auto">
+      {/* Welcome Header */}
       <motion.div
         initial={{ opacity: 0, y: -8 }}
         animate={{ opacity: 1, y: 0 }}
-        className="flex items-center justify-between"
+        className="flex flex-col sm:flex-row sm:items-center justify-between gap-3"
       >
         <div>
           <h1 className="text-xl font-bold text-foreground">
-            {greeting()}, {user?.email?.split("@")[0] ?? "Student"} 👋
+            {greeting()}, {username} 👋
           </h1>
-          <p className="text-sm text-muted-foreground mt-0.5">
-            Here&apos;s your academic snapshot for today
+          <p className="text-xs text-muted-foreground mt-0.5">
+            Here is your dynamic CampusFlow dashboard snapshot.
           </p>
         </div>
-        <Link href="/tasks">
-          <Button size="sm" className="gap-1.5">
-            <Plus className="h-3.5 w-3.5" /> New Task
-          </Button>
-        </Link>
       </motion.div>
 
-      {/* Stat Cards */}
-      <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
-        <StatCard label="Tasks Due" value="12" change="+3 this week" trend="up" icon={CheckSquare} color="violet" delay={0} />
-        <StatCard label="Attendance" value="87%" change="Above threshold" trend="up" icon={ClipboardList} color="green" delay={0.08} />
-        <StatCard label="Study Streak" value="14d" change="Personal best!" trend="up" icon={TrendingUp} color="amber" delay={0.16} />
-        <StatCard label="Applications" value="5" change="2 in review" trend="neutral" icon={Briefcase} color="blue" delay={0.24} />
-      </div>
+      {/* Metrics Row */}
+      <StatsRow stats={stats} isLoading={statsLoading} />
 
-      {/* Charts + Tasks */}
-      <div className="grid grid-cols-1 gap-5 lg:grid-cols-5">
-        {/* Study hours chart */}
-        <motion.div
-          initial={{ opacity: 0, y: 16 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.3 }}
-          className="lg:col-span-3"
-        >
-          <Card>
-            <CardHeader>
-              <CardTitle>Study Hours This Week</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <ResponsiveContainer width="100%" height={200}>
-                <AreaChart data={studyData}>
-                  <defs>
-                    <linearGradient id="studyGrad" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor="oklch(0.65 0.22 270)" stopOpacity={0.2} />
-                      <stop offset="95%" stopColor="oklch(0.65 0.22 270)" stopOpacity={0} />
-                    </linearGradient>
-                  </defs>
-                  <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" vertical={false} />
-                  <XAxis dataKey="day" tick={{ fontSize: 12, fill: "var(--muted-foreground)" }} axisLine={false} tickLine={false} />
-                  <YAxis tick={{ fontSize: 12, fill: "var(--muted-foreground)" }} axisLine={false} tickLine={false} />
-                  <Tooltip
-                    contentStyle={{
-                      background: "var(--card)",
-                      border: "1px solid var(--border)",
-                      borderRadius: "8px",
-                      fontSize: "12px",
-                    }}
-                  />
-                  <Area
-                    type="monotone"
-                    dataKey="hours"
-                    stroke="oklch(0.65 0.22 270)"
-                    strokeWidth={2}
-                    fill="url(#studyGrad)"
-                    dot={false}
-                  />
-                </AreaChart>
-              </ResponsiveContainer>
-            </CardContent>
-          </Card>
-        </motion.div>
+      {/* Quick Access Actions */}
+      <QuickActions />
 
-        {/* Upcoming events */}
-        <motion.div
-          initial={{ opacity: 0, y: 16 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.35 }}
-          className="lg:col-span-2"
-        >
-          <Card className="h-full">
-            <CardHeader className="flex-row items-center justify-between">
-              <CardTitle>Upcoming</CardTitle>
-              <Link href="/calendar">
-                <Button variant="ghost" size="icon-sm">
-                  <ArrowRight className="h-3.5 w-3.5" />
-                </Button>
-              </Link>
-            </CardHeader>
-            <CardContent className="space-y-2">
-              {upcomingEvents.map((ev) => (
-                <div
-                  key={ev.title}
-                  className="flex items-center gap-3 rounded-lg border border-border p-3 hover:bg-accent/50 transition-colors"
-                >
-                  <Calendar className="h-4 w-4 text-primary shrink-0" />
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium truncate">{ev.title}</p>
-                    <p className="text-xs text-muted-foreground">{ev.date}</p>
-                  </div>
-                  <Badge variant={ev.type === "exam" ? "destructive" : ev.type === "placement" ? "default" : "warning"} className="shrink-0 text-xs">
-                    {ev.type}
-                  </Badge>
-                </div>
-              ))}
-            </CardContent>
-          </Card>
-        </motion.div>
-      </div>
+      {/* Main Grid */}
+      <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
+        {/* Left column (col-span-3) - Main analysis/work content */}
+        <div className="lg:col-span-3 space-y-6">
+          {/* Study hours / AI Chat Activity Chart */}
+          <StudyChart
+            aiHistory={aiHistory}
+            tasks={stats?.upcoming_tasks}
+            isLoading={aiLoading || statsLoading}
+          />
 
-      {/* Recent Tasks */}
-      <motion.div
-        initial={{ opacity: 0, y: 16 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.4 }}
-      >
-        <Card>
-          <CardHeader className="flex-row items-center justify-between">
-            <CardTitle>Recent Tasks</CardTitle>
-            <Link href="/tasks">
-              <Button variant="ghost" size="sm" className="gap-1.5 text-xs">
-                View all <ArrowRight className="h-3 w-3" />
-              </Button>
-            </Link>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-1">
-              {recentTasks.map((task, i) => (
-                <motion.div
-                  key={task.title}
-                  initial={{ opacity: 0, x: -8 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  transition={{ delay: 0.4 + i * 0.06 }}
-                  className="flex items-center gap-3 rounded-lg p-3 hover:bg-accent/50 transition-colors cursor-pointer group"
-                >
-                  <CheckSquare className="h-4 w-4 text-muted-foreground group-hover:text-primary transition-colors shrink-0" />
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium truncate">{task.title}</p>
-                    <p className="text-xs text-muted-foreground">{task.subject} · Due {task.due}</p>
-                  </div>
-                  <Badge variant={statusColors[task.status]}>{task.status}</Badge>
-                </motion.div>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
-      </motion.div>
-
-      {/* AI Chat CTA */}
-      <motion.div
-        initial={{ opacity: 0, y: 16 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.5 }}
-      >
-        <div className="rounded-xl border border-primary/20 bg-primary/5 p-5 flex items-center justify-between gap-4">
-          <div className="flex items-center gap-4">
-            <div className="h-10 w-10 rounded-xl bg-primary/15 flex items-center justify-center shrink-0">
-              <Bot className="h-5 w-5 text-primary" />
-            </div>
-            <div>
-              <p className="text-sm font-semibold">AI Study Assistant is ready</p>
-              <p className="text-xs text-muted-foreground">Ask anything about your subjects, deadlines, or exam prep</p>
-            </div>
-          </div>
-          <Link href="/ai-chat">
-            <Button size="sm" className="shrink-0 gap-1.5">
-              Chat now <ArrowRight className="h-3.5 w-3.5" />
-            </Button>
-          </Link>
+          {/* Full Task Manager */}
+          <TaskManager />
         </div>
-      </motion.div>
+
+        {/* Right column (col-span-2) - Schedule / Side panel metrics */}
+        <div className="lg:col-span-2 space-y-6">
+          {/* Today's Schedule */}
+          <TodaySchedule events={todayEvents} isLoading={todayEventsLoading} />
+
+          {/* Upcoming Deadlines */}
+          <UpcomingDeadlines tasks={upcomingTasks} isLoading={upcomingTasksLoading} />
+
+          {/* Attendance Breakdown */}
+          <AttendanceCard
+            summary={attendanceSummary}
+            avgPercentage={avgAttendance}
+            isLoading={attendanceLoading || statsLoading}
+          />
+
+          {/* Notifications Panel */}
+          <NotificationsPanel
+            notifications={notifications?.data}
+            unreadCount={stats?.unread_notifications}
+            isLoading={notificationsLoading || statsLoading}
+          />
+
+          {/* Automation Logs */}
+          <AutomationStatus
+            logs={automationLogs?.data}
+            stats={automationLogs?.meta?.stats}
+            isLoading={automationLoading}
+          />
+
+          {/* AI Advisor Prompt */}
+          <AITip latestPrompt={latestAiResponse} />
+        </div>
+      </div>
+
+      {/* Activity Logs Feed */}
+      <RecentActivities
+        tasks={upcomingTasks}
+        notifications={notifications?.data}
+        events={todayEvents}
+        isLoading={upcomingTasksLoading || notificationsLoading || todayEventsLoading}
+      />
     </div>
   );
 }

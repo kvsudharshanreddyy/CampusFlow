@@ -1,0 +1,84 @@
+{
+  "name": "Attendance Reminder",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "0 10 * * 1"
+            }
+          ]
+        }
+      },
+      "id": "node-1",
+      "name": "Weekly Monday Check",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        200,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "url": "http://localhost:5000/api/v1/attendance/summary",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "Bearer dev_token"
+            }
+          ]
+        }
+      },
+      "id": "node-2",
+      "name": "Fetch Attendance Summary",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [
+        400,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "message": "Warning: Your attendance in {{$json.code}} is below the 75% requirement. Current percentage: {{$json.percentage}}%."
+      },
+      "id": "node-3",
+      "name": "Send Warning WhatsApp",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [
+        620,
+        300
+      ]
+    }
+  ],
+  "connections": {
+    "Weekly Monday Check": {
+      "main": [
+        [
+          {
+            "node": "Fetch Attendance Summary",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fetch Attendance Summary": {
+      "main": [
+        [
+          {
+            "node": "Send Warning WhatsApp",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  }
+}

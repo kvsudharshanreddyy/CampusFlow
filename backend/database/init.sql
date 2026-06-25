@@ -237,6 +237,12 @@ CREATE INDEX idx_notifications_user_id ON public.notifications(user_id);
 CREATE INDEX idx_ai_history_user_id ON public.ai_history(user_id);
 CREATE INDEX idx_flashcards_user_id ON public.flashcards(user_id);
 CREATE INDEX idx_mcqs_user_id ON public.mcqs(user_id);
+CREATE INDEX idx_group_members_user_id ON public.group_members(user_id);
+CREATE INDEX idx_study_groups_created_by ON public.study_groups(created_by);
+CREATE INDEX idx_task_reminders_task_id ON public.task_reminders(task_id);
+CREATE INDEX idx_task_reminders_time_sent ON public.task_reminders(reminder_time, is_sent);
+CREATE INDEX idx_whatsapp_logs_user_id ON public.whatsapp_logs(user_id);
+CREATE INDEX idx_sessions_user_id ON public.sessions(user_id);
 
 -- ==========================================
 -- 4. ROW LEVEL SECURITY (RLS)

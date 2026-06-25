@@ -77,6 +77,7 @@ export interface PlacementEntry {
   notes?: string;
   created_at: string;
   updated_at: string;
+  companies?: Company;
 }
 
 export interface Company {
@@ -124,4 +125,51 @@ export interface StatCard {
   change?: string;
   trend?: "up" | "down" | "neutral";
   icon: string;
+}
+
+export interface PaginatedResponse<T> {
+  data: T[];
+  meta: {
+    total: number;
+    page: number;
+    limit: number;
+    totalPages: number;
+  };
+}
+
+export interface AttendanceSummary {
+  subject_id: string;
+  code: string;
+  name: string;
+  total: number;
+  present: number;
+  absent: number;
+  late: number;
+  percentage: number;
+}
+
+export interface AutomationLog {
+  id: string;
+  workflow_name: string;
+  status: "success" | "failed" | "pending";
+  message?: string;
+  created_at: string;
+}
+
+export interface DashboardStats {
+  tasks: {
+    total: number;
+    pending: number;
+    "in-progress": number;
+    completed: number;
+  };
+  attendance: {
+    average_percentage: number;
+    at_risk_subjects: number;
+    subjects: AttendanceSummary[];
+  };
+  unread_notifications: number;
+  upcoming_tasks: Task[];
+  today_events: CalendarEvent[];
+  today_events_count: number;
 }

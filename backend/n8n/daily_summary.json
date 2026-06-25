@@ -1,0 +1,84 @@
+{
+  "name": "Daily Summary",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "0 8 * * *"
+            }
+          ]
+        }
+      },
+      "id": "node-1",
+      "name": "Cron Morning",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        200,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "url": "http://localhost:5000/api/v1/dashboard/stats",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "Bearer dev_token"
+            }
+          ]
+        }
+      },
+      "id": "node-2",
+      "name": "Fetch Stats",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [
+        420,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "message": "Daily CampusFlow Roundup: You have {{$json.tasks.pending}} pending tasks and {{$json.today_events_count}} events scheduled today."
+      },
+      "id": "node-3",
+      "name": "Send Daily Summary WhatsApp",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [
+        640,
+        300
+      ]
+    }
+  ],
+  "connections": {
+    "Cron Morning": {
+      "main": [
+        [
+          {
+            "node": "Fetch Stats",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fetch Stats": {
+      "main": [
+        [
+          {
+            "node": "Send Daily Summary WhatsApp",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  }
+}

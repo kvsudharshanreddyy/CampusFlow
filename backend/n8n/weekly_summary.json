@@ -1,0 +1,51 @@
+{
+  "name": "Weekly Summary",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "0 18 * * 7"
+            }
+          ]
+        }
+      },
+      "id": "node-1",
+      "name": "Cron Sunday Evening",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        200,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "message": "Weekly Summary: Congratulations! You completed {{$json.tasks_completed}} tasks this week. Keep up the streak!"
+      },
+      "id": "node-2",
+      "name": "Send Weekly Summary WhatsApp",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [
+        420,
+        300
+      ]
+    }
+  ],
+  "connections": {
+    "Cron Sunday Evening": {
+      "main": [
+        [
+          {
+            "node": "Send Weekly Summary WhatsApp",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  }
+}
