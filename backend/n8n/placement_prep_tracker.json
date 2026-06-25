@@ -1,0 +1,191 @@
+{
+  "name": "Placement Prep Tracker",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "placement-update",
+        "options": {}
+      },
+      "id": "placement-webhook-trigger",
+      "name": "Placement Webhook Trigger",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [
+        180,
+        240
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.groq.com/openai/v1/chat/completions",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "=Bearer {{ $env.GROQ_API_KEY }}"
+            }
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "model",
+              "value": "llama-3.3-70b-versatile"
+            },
+            {
+              "name": "messages",
+              "value": "=[{\"role\": \"system\", \"content\": \"You are a placement preparation coach. Based on the target company and role, generate 3 custom technical interview questions and 2 behavioral questions to help the student prepare.\"}, {\"role\": \"user\", \"content\": \"Company: \" + $json.body.company + \", Role: \" + $json.body.role}]"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "groq-prep-advisor",
+      "name": "Groq AI Prep Advisor",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [
+        400,
+        240
+      ]
+    },
+    {
+      "parameters": {
+        "calendar": {
+          "__rl": true,
+          "value": "primary",
+          "mode": "list"
+        },
+        "start": "={{ new Date(Date.now() + 24*60*60*1000).toISOString() }}",
+        "end": "={{ new Date(Date.now() + 25*60*60*1000).toISOString() }}",
+        "summary": "=Mock Interview Prep: {{ $node[\"Placement Webhook Trigger\"].json.body.company }}",
+        "description": "Auto-scheduled preparation window.",
+        "options": {}
+      },
+      "id": "gcal-interview-prep",
+      "name": "Google Calendar Sync",
+      "type": "n8n-nodes-base.googleCalendar",
+      "typeVersion": 2,
+      "position": [
+        620,
+        140
+      ]
+    },
+    {
+      "parameters": {
+        "phoneNumber": "=+1234567890",
+        "message": "=CampusFlow Placement Tracker 💼\n\nYour application for {{ $node[\"Placement Webhook Trigger\"].json.body.role }} at {{ $node[\"Placement Webhook Trigger\"].json.body.company }} has updated to 'Interviewing'!\n\nAI Coach Prep Questions:\n{{ $json.choices[0].message.content }}",
+        "options": {}
+      },
+      "id": "twilio-whatsapp-prep-alert",
+      "name": "Twilio WhatsApp Prep Alert",
+      "type": "n8n-nodes-base.twilio",
+      "typeVersion": 1,
+      "position": [
+        620,
+        340
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://localhost:5000/api/v1/automation-logs/webhooks",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "X-Automation-Token",
+              "value": "campusflow_secret"
+            }
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "workflow_name",
+              "value": "Placement Prep Tracker"
+            },
+            {
+              "name": "status",
+              "value": "success"
+            },
+            {
+              "name": "message",
+              "value": "=Successfully generated prep suggestions."
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "log-prep-tracker-run",
+      "name": "Log Prep Tracker Run",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [
+        840,
+        240
+      ]
+    }
+  ],
+  "connections": {
+    "Placement Webhook Trigger": {
+      "main": [
+        [
+          {
+            "node": "Groq AI Prep Advisor",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Groq AI Prep Advisor": {
+      "main": [
+        [
+          {
+            "node": "Google Calendar Sync",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Twilio WhatsApp Prep Alert",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Calendar Sync": {
+      "main": [
+        [
+          {
+            "node": "Log Prep Tracker Run",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Twilio WhatsApp Prep Alert": {
+      "main": [
+        [
+          {
+            "node": "Log Prep Tracker Run",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {},
+  "meta": {
+    "instanceId": "campusflow-n8n"
+  }
+}

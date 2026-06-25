@@ -38,7 +38,12 @@ const app = express();
 app.use(helmet());
 
 // Enable CORS
-app.use(cors());
+app.use(
+  cors({
+    origin: "http://localhost:3000",
+    credentials: true,
+  })
+);
 
 // Parse JSON payload
 app.use(express.json());

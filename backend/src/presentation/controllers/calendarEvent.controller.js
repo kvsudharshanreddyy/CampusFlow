@@ -1,4 +1,6 @@
 const calendarEventRepository = require('../../infrastructure/database/calendarEventRepository');
+const supabase = require('../../infrastructure/database/supabase');
+const { triggerN8NWebhook } = require('../../utils/n8n');
 
 class CalendarEventController {
   async getAll(req, res, next) {
@@ -41,6 +43,33 @@ class CalendarEventController {
         end_time,
         event_type: event_type || 'general',
       });
+
+      if (event && (event_type === 'class' || title.toLowerCase().includes('study session'))) {
+        try {
+          let groupName = 'Campus Study Group';
+          const match = description ? description.match(/group ID:\s*([a-f0-9-]+)/i) : null;
+          const groupId = match ? match[1] : null;
+          if (groupId) {
+            const { data: group } = await supabase
+              .from('study_groups')
+              .select('name')
+              .eq('id', groupId)
+              .single();
+            if (group) groupName = group.name;
+          }
+          
+          triggerN8NWebhook('group-session', {
+            user_id: req.user.id,
+            group_name: groupName,
+            topic: title.replace('Study Session: ', ''),
+            start_time,
+            end_time
+          });
+        } catch (webhookErr) {
+          // ignore
+        }
+      }
+
       res.status(201).json({ status: 'success', message: 'Event created', data: event });
     } catch (error) {
       next(error);

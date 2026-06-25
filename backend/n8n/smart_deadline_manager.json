@@ -1,0 +1,236 @@
+{
+  "name": "Smart Deadline Manager",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "days",
+              "daysInterval": 1,
+              "triggerAtHour": 8
+            }
+          ]
+        }
+      },
+      "id": "schedule-trigger",
+      "name": "Schedule Trigger",
+      "type": "n8n-nodes-base.cron",
+      "typeVersion": 1,
+      "position": [
+        200,
+        240
+      ]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "={{ $env.SUPABASE_URL }}/rest/v1/tasks?select=*,subjects(code,name)&status=eq.pending&due_date=gte.{{ new Date().toISOString() }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "apikey",
+              "value": "={{ $env.SUPABASE_SERVICE_ROLE_KEY }}"
+            },
+            {
+              "name": "Authorization",
+              "value": "=Bearer {{ $env.SUPABASE_SERVICE_ROLE_KEY }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "fetch-supabase-tasks",
+      "name": "Fetch Supabase Tasks",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [
+        420,
+        240
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.groq.com/openai/v1/chat/completions",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "=Bearer {{ $env.GROQ_API_KEY }}"
+            }
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "model",
+              "value": "llama-3.3-70b-versatile"
+            },
+            {
+              "name": "messages",
+              "value": "=[{\"role\": \"system\", \"content\": \"You are a student productivity optimizer. Given a list of deadlines, rank them by priority based on credits and proximity, then format a summary study checklist.\"}, {\"role\": \"user\", \"content\": \"Tasks list: \" + JSON.stringify($json)}]"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "groq-prioritization",
+      "name": "Groq AI Prioritization",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [
+        640,
+        240
+      ]
+    },
+    {
+      "parameters": {
+        "calendar": {
+          "__rl": true,
+          "value": "primary",
+          "mode": "list"
+        },
+        "start": "={{ $node[\"Fetch Supabase Tasks\"].json[0]?.due_date }}",
+        "end": "={{ new Date(new Date($node[\"Fetch Supabase Tasks\"].json[0]?.due_date).getTime() + 60*60*1000).toISOString() }}",
+        "summary": "=Deadline: {{ $node[\"Fetch Supabase Tasks\"].json[0]?.title }}",
+        "description": "Auto-synced deadline reminder from CampusFlow",
+        "options": {}
+      },
+      "id": "google-calendar-sync",
+      "name": "Google Calendar Sync",
+      "type": "n8n-nodes-base.googleCalendar",
+      "typeVersion": 2,
+      "position": [
+        860,
+        140
+      ]
+    },
+    {
+      "parameters": {
+        "phoneNumber": "=+1234567890",
+        "message": "=CampusFlow Smart Deadline Alert ⏰\n\nHere is your AI-optimized task priority checklist for today:\n\n{{ $node[\"Groq AI Prioritization\"].json.choices[0].message.content }}",
+        "options": {}
+      },
+      "id": "whatsapp-dispatcher",
+      "name": "WhatsApp Dispatcher",
+      "type": "n8n-nodes-base.twilio",
+      "typeVersion": 1,
+      "position": [
+        860,
+        340
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://localhost:5000/api/v1/automation-logs/webhooks",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "X-Automation-Token",
+              "value": "campusflow_secret"
+            }
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "workflow_name",
+              "value": "Smart Deadline Manager"
+            },
+            {
+              "name": "status",
+              "value": "success"
+            },
+            {
+              "name": "message",
+              "value": "=Successfully prioritized and synced tasks."
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "post-execution-log",
+      "name": "Post Execution Log",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [
+        1080,
+        240
+      ]
+    }
+  ],
+  "connections": {
+    "Schedule Trigger": {
+      "main": [
+        [
+          {
+            "node": "Fetch Supabase Tasks",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fetch Supabase Tasks": {
+      "main": [
+        [
+          {
+            "node": "Groq AI Prioritization",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Groq AI Prioritization": {
+      "main": [
+        [
+          {
+            "node": "Google Calendar Sync",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "WhatsApp Dispatcher",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Calendar Sync": {
+      "main": [
+        [
+          {
+            "node": "Post Execution Log",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "WhatsApp Dispatcher": {
+      "main": [
+        [
+          {
+            "node": "Post Execution Log",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {},
+  "meta": {
+    "instanceId": "campusflow-n8n"
+  }
+}

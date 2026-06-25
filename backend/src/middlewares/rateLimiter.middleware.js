@@ -12,6 +12,8 @@ setInterval(() => {
   }
 }, 5 * 60 * 1000).unref(); // .unref() ensures the timer doesn't block process exit
 
+const config = require('../config/env');
+
 /**
  * Custom in-memory rate limiting middleware
  * @param {Object} options Configuration options
@@ -28,6 +30,16 @@ const rateLimiter = (options = {}) => {
     // Determine client IP
     const ip = req.headers['x-forwarded-for'] || req.socket.remoteAddress || req.ip;
     const now = Date.now();
+
+    // Bypass for automation/testing
+    const automationToken = req.headers['x-automation-token'] || req.headers['x-webhook-token'];
+    const authHeader = req.headers.authorization;
+    if (
+      automationToken === config.automation.webhookSecret ||
+      (authHeader === 'Bearer dev_token' && config.env === 'development')
+    ) {
+      return next();
+    }
 
     let client = rateLimitStore.get(ip);
 

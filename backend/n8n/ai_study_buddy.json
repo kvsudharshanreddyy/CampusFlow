@@ -1,0 +1,155 @@
+{
+  "name": "AI Study Buddy",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "ai-study-buddy",
+        "options": {}
+      },
+      "id": "webhook-trigger",
+      "name": "Webhook Trigger",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [
+        250,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.groq.com/openai/v1/chat/completions",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "=Bearer {{ $env.GROQ_API_KEY }}"
+            }
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "model",
+              "value": "llama-3.3-70b-versatile"
+            },
+            {
+              "name": "messages",
+              "value": "=[{\"role\": \"system\", \"content\": \"You are a helpful university study assistant tutor for the subject: \" + $json.body.subject}, {\"role\": \"user\", \"content\": $json.body.message}]"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "groq-ai-call",
+      "name": "Groq AI Completion",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [
+        470,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "phoneNumber": "={{ $node[\"Webhook Trigger\"].json.body.phone_number }}",
+        "message": "=CampusFlow AI Study Buddy 🎓\n\nQuery: {{ $node[\"Webhook Trigger\"].json.body.message }}\n\nAnswer:\n{{ $json.choices[0].message.content }}",
+        "options": {}
+      },
+      "id": "twilio-whatsapp-send",
+      "name": "Twilio WhatsApp Send",
+      "type": "n8n-nodes-base.twilio",
+      "typeVersion": 1,
+      "position": [
+        690,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://localhost:5000/api/v1/automation-logs/webhooks",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "X-Automation-Token",
+              "value": "campusflow_secret"
+            }
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "workflow_name",
+              "value": "AI Study Buddy"
+            },
+            {
+              "name": "status",
+              "value": "success"
+            },
+            {
+              "name": "message",
+              "value": "=Successfully answered query for user: {{ $node[\"Webhook Trigger\"].json.body.user_id }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "post-log-to-backend",
+      "name": "HTTP Request - Post Log",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [
+        910,
+        300
+      ]
+    }
+  ],
+  "connections": {
+    "Webhook Trigger": {
+      "main": [
+        [
+          {
+            "node": "Groq AI Completion",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Groq AI Completion": {
+      "main": [
+        [
+          {
+            "node": "Twilio WhatsApp Send",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Twilio WhatsApp Send": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request - Post Log",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {},
+  "meta": {
+    "instanceId": "campusflow-n8n"
+  }
+}

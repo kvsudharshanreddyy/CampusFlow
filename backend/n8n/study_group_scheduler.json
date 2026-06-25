@@ -1,0 +1,143 @@
+{
+  "name": "Study Group Scheduler",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "group-session",
+        "options": {}
+      },
+      "id": "session-webhook-trigger",
+      "name": "Session Webhook Trigger",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [
+        200,
+        240
+      ]
+    },
+    {
+      "parameters": {
+        "calendar": {
+          "__rl": true,
+          "value": "primary",
+          "mode": "list"
+        },
+        "start": "={{ $node[\"Session Webhook Trigger\"].json.body.start_time }}",
+        "end": "={{ $node[\"Session Webhook Trigger\"].json.body.end_time }}",
+        "summary": "=Study Session: {{ $node[\"Session Webhook Trigger\"].json.body.topic }}",
+        "description": "=Shared study review for group: {{ $node[\"Session Webhook Trigger\"].json.body.group_name }}",
+        "options": {}
+      },
+      "id": "gcal-shared-session",
+      "name": "Google Calendar Shared Session",
+      "type": "n8n-nodes-base.googleCalendar",
+      "typeVersion": 2,
+      "position": [
+        420,
+        140
+      ]
+    },
+    {
+      "parameters": {
+        "phoneNumber": "=+1234567890",
+        "message": "=CampusFlow Study Group Notification 👥\n\nA new study session has been scheduled!\n\nGroup: {{ $node[\"Session Webhook Trigger\"].json.body.group_name }}\nTopic: {{ $node[\"Session Webhook Trigger\"].json.body.topic }}\nTime: {{ new Date($node[\"Session Webhook Trigger\"].json.body.start_time).toLocaleString() }}\n\nSee you there! 📝",
+        "options": {}
+      },
+      "id": "twilio-whatsapp-members",
+      "name": "Twilio WhatsApp Members",
+      "type": "n8n-nodes-base.twilio",
+      "typeVersion": 1,
+      "position": [
+        420,
+        340
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://localhost:5000/api/v1/automation-logs/webhooks",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "X-Automation-Token",
+              "value": "campusflow_secret"
+            }
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "workflow_name",
+              "value": "Study Group Scheduler"
+            },
+            {
+              "name": "status",
+              "value": "success"
+            },
+            {
+              "name": "message",
+              "value": "=Successfully scheduled session and synced calendar."
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "log-session-outcome",
+      "name": "Log Session Outcome",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [
+        640,
+        240
+      ]
+    }
+  ],
+  "connections": {
+    "Session Webhook Trigger": {
+      "main": [
+        [
+          {
+            "node": "Google Calendar Shared Session",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Twilio WhatsApp Members",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Calendar Shared Session": {
+      "main": [
+        [
+          {
+            "node": "Log Session Outcome",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Twilio WhatsApp Members": {
+      "main": [
+        [
+          {
+            "node": "Log Session Outcome",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {},
+  "meta": {
+    "instanceId": "campusflow-n8n"
+  }
+}

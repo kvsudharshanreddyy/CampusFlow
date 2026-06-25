@@ -17,7 +17,31 @@
     },
     {
       "parameters": {
-        "message": "Welcome to CampusFlow! Your account is active. Start organizing your schedule and deadlines dynamically."
+        "method": "POST",
+        "url": "http://localhost:5000/api/v1/automation-logs/whatsapp-dispatch",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "X-Automation-Token",
+              "value": "campusflow_secret"
+            }
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "phone_number",
+              "value": "=+1234567890"
+            },
+            {
+              "name": "message",
+              "value": "=Welcome to CampusFlow! Your account is active. Start organizing your schedule and deadlines dynamically."
+            }
+          ]
+        },
+        "options": {}
       },
       "id": "node-2",
       "name": "Send Welcome WhatsApp",

@@ -18,8 +18,7 @@ class GoogleCalendarService {
       description: description || '',
       start_time: new Date(start_time).toISOString(),
       end_time: new Date(end_time).toISOString(),
-      event_type,
-      updated_at: new Date().toISOString()
+      event_type
     };
 
     try {

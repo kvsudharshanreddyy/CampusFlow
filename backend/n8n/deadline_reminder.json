@@ -45,7 +45,31 @@
     },
     {
       "parameters": {
-        "message": "Friendly reminder: You have tasks due tomorrow. Check your CampusFlow tasks list."
+        "method": "POST",
+        "url": "http://localhost:5000/api/v1/automation-logs/whatsapp-dispatch",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "X-Automation-Token",
+              "value": "campusflow_secret"
+            }
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "phone_number",
+              "value": "=+1234567890"
+            },
+            {
+              "name": "message",
+              "value": "=Friendly reminder: You have tasks due tomorrow. Check your CampusFlow tasks list."
+            }
+          ]
+        },
+        "options": {}
       },
       "id": "node-3",
       "name": "Send Deadline WhatsApp",

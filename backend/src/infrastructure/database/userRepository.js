@@ -36,17 +36,14 @@ class UserRepository {
   async create(userEntity) {
     const { id, email, password, role } = userEntity;
     
-    // We omit created_at/updated_at to let DB handle it, or we can pass them
+    const payload = { email, password, role };
+    if (id) {
+      payload.id = id;
+    }
+
     const { data, error } = await supabase
       .from('users')
-      .insert([
-        {
-          id, // Can be omitted if Supabase generates UUID, but assuming we might pass it
-          email,
-          password,
-          role,
-        }
-      ])
+      .insert([payload])
       .select()
       .single();
 

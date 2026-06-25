@@ -3,6 +3,8 @@ const aiService = require('../../infrastructure/ai/aiService');
 const promptTemplates = require('../../infrastructure/ai/promptTemplates');
 const logger = require('../../utils/logger');
 const cacheService = require('../../infrastructure/services/cache.service');
+const profileRepository = require('../../infrastructure/database/profileRepository');
+const { triggerN8NWebhook } = require('../../utils/n8n');
 
 // Robust JSON parser helper
 function parseJsonResponse(text) {
@@ -86,6 +88,18 @@ class AIController {
             response: fullReply,
             context: { subject, contextCount: context.length }
           });
+
+          // Fetch user profile and trigger n8n Study Buddy workflow
+          const profile = await profileRepository.findById(userId);
+          if (profile && profile.phone_number) {
+            triggerN8NWebhook('ai-study-buddy', {
+              user_id: userId,
+              message,
+              subject,
+              phone_number: profile.phone_number,
+              reply: fullReply
+            });
+          }
         } catch (dbErr) {
           logger.error(`Failed to log streamed AI chat history to database: ${dbErr.message}`);
         }
@@ -168,6 +182,18 @@ class AIController {
       ];
 
       const summary = await aiService.generateCompletion(messages);
+
+      // Trigger n8n Notice Summarizer webhook to broadcast
+      try {
+        triggerN8NWebhook('new-notice', {
+          title: 'Campus Announcement',
+          content: text,
+          summary
+        });
+      } catch (webhookErr) {
+        // ignore
+      }
+
       res.status(200).json({
         status: 'success',
         data: { summary }

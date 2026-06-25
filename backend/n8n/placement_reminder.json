@@ -17,7 +17,31 @@
     },
     {
       "parameters": {
-        "message": "Placement Update: Your application status for {{$json.company}} (Role: {{$json.role_title}}) has updated to {{$json.status}}."
+        "method": "POST",
+        "url": "http://localhost:5000/api/v1/automation-logs/whatsapp-dispatch",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "X-Automation-Token",
+              "value": "campusflow_secret"
+            }
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "phone_number",
+              "value": "=+1234567890"
+            },
+            {
+              "name": "message",
+              "value": "=Placement Update: Your application status for {{$json.company}} (Role: {{$json.role_title}}) has updated to {{$json.status}}."
+            }
+          ]
+        },
+        "options": {}
       },
       "id": "node-2",
       "name": "Send Placement WhatsApp",

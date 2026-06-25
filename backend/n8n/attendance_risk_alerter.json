@@ -1,0 +1,222 @@
+{
+  "name": "Attendance Risk Alerter",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "days",
+              "daysInterval": 7,
+              "triggerAtHour": 17
+            }
+          ]
+        }
+      },
+      "id": "weekly-schedule",
+      "name": "Weekly Schedule",
+      "type": "n8n-nodes-base.cron",
+      "typeVersion": 1,
+      "position": [
+        200,
+        240
+      ]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "={{ $env.SUPABASE_URL }}/rest/v1/attendance?select=*,subjects(code,name)",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "apikey",
+              "value": "={{ $env.SUPABASE_SERVICE_ROLE_KEY }}"
+            },
+            {
+              "name": "Authorization",
+              "value": "=Bearer {{ $env.SUPABASE_SERVICE_ROLE_KEY }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "query-attendance-records",
+      "name": "Query Attendance Records",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [
+        420,
+        240
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const records = $json;\nconst userAttendance = {};\n\n// Group by user and subject\nrecords.forEach(r => {\n  const uid = r.user_id;\n  const subCode = r.subjects?.code || 'GEN';\n  const subName = r.subjects?.name || 'Subject';\n  \n  if (!userAttendance[uid]) userAttendance[uid] = {};\n  if (!userAttendance[uid][subCode]) {\n    userAttendance[uid][subCode] = { code: subCode, name: subName, present: 0, total: 0 };\n  }\n  \n  userAttendance[uid][subCode].total++;\n  if (r.status === 'present' || r.status === 'late') {\n    userAttendance[uid][subCode].present++;\n  }\n});\n\n// Find users with risks (< 75%)\nconst risks = [];\nObject.keys(userAttendance).forEach(uid => {\n  Object.keys(userAttendance[uid]).forEach(sub => {\n    const data = userAttendance[uid][sub];\n    const pct = Math.round((data.present / data.total) * 100);\n    if (pct < 75) {\n      risks.push({\n        user_id: uid,\n        subject_code: data.code,\n        subject_name: data.name,\n        percentage: pct,\n        attended: data.present,\n        total: data.total\n      });\n    }\n  });\n});\n\nreturn risks;"
+      },
+      "id": "calculate-risk-metrics",
+      "name": "Calculate Risk Metrics",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        640,
+        240
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.groq.com/openai/v1/chat/completions",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "=Bearer {{ $env.GROQ_API_KEY }}"
+            }
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "model",
+              "value": "llama-3.3-70b-versatile"
+            },
+            {
+              "name": "messages",
+              "value": "=[{\"role\": \"system\", \"content\": \"You are an academic advisor. Based on attendance metrics (percentage, attended classes, total classes), compute the exact number of consecutive classes a student must attend to reach a safe 75% attendance threshold.\"}, {\"role\": \"user\", \"content\": \"Attendance Data: Subject Code: \" + $json.subject_code + \", Attended: \" + $json.attended + \", Total: \" + $json.total + \", Current: \" + $json.percentage + \"%\"}]"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "ai-attendance-advisor",
+      "name": "AI Attendance Advisor",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [
+        860,
+        240
+      ]
+    },
+    {
+      "parameters": {
+        "phoneNumber": "=+1234567890",
+        "message": "=CampusFlow Attendance Alert ⚠️\n\nYour attendance in {{ $node[\"Calculate Risk Metrics\"].json.subject_code }} ({{ $node[\"Calculate Risk Metrics\"].json.subject_name }}) is currently {{ $node[\"Calculate Risk Metrics\"].json.percentage }}% (Target: >= 75%).\n\nAI Prediction & Action Plan:\n{{ $json.choices[0].message.content }}",
+        "options": {}
+      },
+      "id": "twilio-whatsapp-warning",
+      "name": "Twilio WhatsApp Warning",
+      "type": "n8n-nodes-base.twilio",
+      "typeVersion": 1,
+      "position": [
+        1080,
+        240
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://localhost:5000/api/v1/automation-logs/webhooks",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "X-Automation-Token",
+              "value": "campusflow_secret"
+            }
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "workflow_name",
+              "value": "Attendance Risk Alerter"
+            },
+            {
+              "name": "status",
+              "value": "success"
+            },
+            {
+              "name": "message",
+              "value": "=Identified attendance risks and sent warnings."
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "log-alerter-status",
+      "name": "Log Alerter Status",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [
+        1300,
+        240
+      ]
+    }
+  ],
+  "connections": {
+    "Weekly Schedule": {
+      "main": [
+        [
+          {
+            "node": "Query Attendance Records",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Query Attendance Records": {
+      "main": [
+        [
+          {
+            "node": "Calculate Risk Metrics",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Calculate Risk Metrics": {
+      "main": [
+        [
+          {
+            "node": "AI Attendance Advisor",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Attendance Advisor": {
+      "main": [
+        [
+          {
+            "node": "Twilio WhatsApp Warning",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Twilio WhatsApp Warning": {
+      "main": [
+        [
+          {
+            "node": "Log Alerter Status",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {},
+  "meta": {
+    "instanceId": "campusflow-n8n"
+  }
+}

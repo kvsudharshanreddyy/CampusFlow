@@ -20,7 +20,18 @@ module.exports = {
     expiresIn: process.env.JWT_EXPIRES_IN || '1d',
   },
   supabase: {
-    url: process.env.SUPABASE_URL,
+    url: (() => {
+      let url = process.env.SUPABASE_URL || '';
+      if (url.endsWith('/rest/v1/')) {
+        url = url.slice(0, -9);
+      } else if (url.endsWith('/rest/v1')) {
+        url = url.slice(0, -8);
+      }
+      if (url.endsWith('/')) {
+        url = url.slice(0, -1);
+      }
+      return url || undefined;
+    })(),
     serviceRoleKey: process.env.SUPABASE_SERVICE_ROLE_KEY,
   },
   groq: {

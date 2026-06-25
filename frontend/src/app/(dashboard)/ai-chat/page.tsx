@@ -7,6 +7,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { cn } from "@/lib/utils";
+import { useAuthStore } from "@/store/auth.store";
+import { toast } from "sonner";
 
 interface Message {
   id: string;
@@ -80,16 +82,88 @@ export default function AiChatPage() {
     setInput("");
     setLoading(true);
 
-    // Simulated AI response (replace with actual API call)
-    await new Promise((r) => setTimeout(r, 1200));
-    const aiMsg: Message = {
-      id: (Date.now() + 1).toString(),
-      role: "assistant",
-      content: `Great question! I'm processing your request about "${content}". Once the backend AI integration is connected, I'll provide detailed, context-aware responses based on your academic data, subjects, and deadlines. 🚀`,
-      timestamp: new Date(),
-    };
-    setMessages((prev) => [...prev, aiMsg]);
-    setLoading(false);
+    try {
+      const chatHistory = messages
+        .filter((m) => m.id !== "0")
+        .map((m) => ({
+          role: m.role,
+          content: m.content,
+        }));
+
+      const aiMsgId = (Date.now() + 1).toString();
+      const aiMsgPlaceholder: Message = {
+        id: aiMsgId,
+        role: "assistant",
+        content: "",
+        timestamp: new Date(),
+      };
+      setMessages((prev) => [...prev, aiMsgPlaceholder]);
+
+      const token = useAuthStore.getState().token;
+      const apiBaseUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api/v1";
+      
+      const response = await fetch(`${apiBaseUrl}/ai/chat`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          message: content,
+          subject: "General Study",
+          history: chatHistory,
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to connect to AI study companion");
+      }
+
+      const reader = response.body?.getReader();
+      const decoder = new TextDecoder();
+      let done = false;
+      let accumulatedContent = "";
+
+      if (reader) {
+        while (!done) {
+          const { value, done: readerDone } = await reader.read();
+          done = readerDone;
+          if (value) {
+            const chunk = decoder.decode(value, { stream: true });
+            const lines = chunk.split("\n");
+            
+            for (const line of lines) {
+              const cleaned = line.trim();
+              if (cleaned.startsWith("data: ")) {
+                const dataStr = cleaned.slice(6).trim();
+                if (dataStr === "[DONE]") continue;
+                try {
+                  const parsed = JSON.parse(dataStr);
+                  if (parsed.content) {
+                    accumulatedContent += parsed.content;
+                    setMessages((prev) =>
+                      prev.map((m) =>
+                        m.id === aiMsgId ? { ...m, content: accumulatedContent } : m
+                      )
+                    );
+                  } else if (parsed.error) {
+                    throw new Error(parsed.error);
+                  }
+                } catch (e) {
+                  // Ignore parse errors for keep-alives or partial headers
+                }
+              }
+            }
+          }
+        }
+      }
+    } catch (err: any) {
+      console.error("AI chat error:", err);
+      toast.error(err.message || "Failed to retrieve study response.");
+      setMessages((prev) => prev.filter((m) => m.content !== ""));
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (

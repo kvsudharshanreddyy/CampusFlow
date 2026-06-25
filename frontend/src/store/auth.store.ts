@@ -25,6 +25,8 @@ export const useAuthStore = create<AuthState>()(
       setAuth: (user, token) => {
         if (typeof window !== "undefined") {
           localStorage.setItem("cf_token", token);
+          // Set cookie for Next.js middleware/proxy to read
+          document.cookie = `cf_token=${token}; path=/; max-age=86400; SameSite=Lax`;
         }
         set({ user, token, isAuthenticated: true });
       },
@@ -34,6 +36,8 @@ export const useAuthStore = create<AuthState>()(
       logout: () => {
         if (typeof window !== "undefined") {
           localStorage.removeItem("cf_token");
+          // Clear cookie
+          document.cookie = "cf_token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT";
         }
         set({ user: null, profile: null, token: null, isAuthenticated: false });
       },

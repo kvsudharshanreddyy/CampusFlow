@@ -11,9 +11,10 @@ class WhatsAppService {
 
     const logEntry = {
       phone_number: phoneNumber,
-      message: message,
+      message_content: message,
+      direction: 'outbound',
       status: 'sent',
-      sent_at: new Date().toISOString()
+      created_at: new Date().toISOString()
     };
 
     try {

@@ -1,5 +1,7 @@
 const placementRepository = require('../../infrastructure/database/placementRepository');
 const cacheService = require('../../infrastructure/services/cache.service');
+const supabase = require('../../infrastructure/database/supabase');
+const { triggerN8NWebhook } = require('../../utils/n8n');
 
 class PlacementController {
   async getApplications(req, res, next) {
@@ -41,6 +43,26 @@ class PlacementController {
         date_applied: date_applied || new Date().toISOString().split('T')[0],
         notes
       });
+
+      if (app && app.status === 'interviewing') {
+        try {
+          const { data: company } = await supabase
+            .from('companies')
+            .select('name')
+            .eq('id', company_id)
+            .single();
+          const companyName = company ? company.name : 'Target Company';
+          
+          triggerN8NWebhook('placement-update', {
+            user_id: req.user.id,
+            company: companyName,
+            role: app.role_title
+          });
+        } catch (webhookErr) {
+          // ignore
+        }
+      }
+
       res.status(201).json({ status: 'success', data: app });
     } catch (error) {
       next(error);
@@ -55,6 +77,26 @@ class PlacementController {
       if (!app) {
         return res.status(404).json({ status: 'error', message: 'Application not found' });
       }
+
+      if (updates.status === 'interviewing') {
+        try {
+          const { data: company } = await supabase
+            .from('companies')
+            .select('name')
+            .eq('id', app.company_id)
+            .single();
+          const companyName = company ? company.name : 'Target Company';
+
+          triggerN8NWebhook('placement-update', {
+            user_id: req.user.id,
+            company: companyName,
+            role: app.role_title
+          });
+        } catch (webhookErr) {
+          // ignore
+        }
+      }
+
       res.status(200).json({ status: 'success', data: app });
     } catch (error) {
       next(error);

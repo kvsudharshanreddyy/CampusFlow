@@ -1,0 +1,153 @@
+{
+  "name": "Notice Summarizer",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "new-notice",
+        "options": {}
+      },
+      "id": "new-notice-webhook",
+      "name": "New Notice Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [
+        200,
+        240
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.groq.com/openai/v1/chat/completions",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "=Bearer {{ $env.GROQ_API_KEY }}"
+            }
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "model",
+              "value": "llama-3.3-70b-versatile"
+            },
+            {
+              "name": "messages",
+              "value": "=[{\"role\": \"system\", \"content\": \"You are a notice summarizer. Convert this campus announcement into an executive summary with a title, a key date callout, bulleted details, and a quick action plan for students.\"}, {\"role\": \"user\", \"content\": $json.body.content}]"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "groq-summarizer",
+      "name": "Groq AI Summarizer",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [
+        420,
+        240
+      ]
+    },
+    {
+      "parameters": {
+        "phoneNumber": "=+1234567890",
+        "message": "=CampusFlow Notice Summary 📢\n\nTitle: {{ $node[\"New Notice Webhook\"].json.body.title }}\n\nAI Summary:\n{{ $json.choices[0].message.content }}",
+        "options": {}
+      },
+      "id": "whatsapp-broadcast",
+      "name": "WhatsApp Broadcast",
+      "type": "n8n-nodes-base.twilio",
+      "typeVersion": 1,
+      "position": [
+        640,
+        240
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://localhost:5000/api/v1/automation-logs/webhooks",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "X-Automation-Token",
+              "value": "campusflow_secret"
+            }
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "workflow_name",
+              "value": "Notice Summarizer"
+            },
+            {
+              "name": "status",
+              "value": "success"
+            },
+            {
+              "name": "message",
+              "value": "=Successfully summarized notice: "
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "log-summarizer-outcome",
+      "name": "Log Summarizer Outcome",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [
+        860,
+        240
+      ]
+    }
+  ],
+  "connections": {
+    "New Notice Webhook": {
+      "main": [
+        [
+          {
+            "node": "Groq AI Summarizer",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Groq AI Summarizer": {
+      "main": [
+        [
+          {
+            "node": "WhatsApp Broadcast",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "WhatsApp Broadcast": {
+      "main": [
+        [
+          {
+            "node": "Log Summarizer Outcome",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {},
+  "meta": {
+    "instanceId": "campusflow-n8n"
+  }
+}

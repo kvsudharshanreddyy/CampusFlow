@@ -45,7 +45,31 @@
     },
     {
       "parameters": {
-        "message": "Warning: Your attendance in {{$json.code}} is below the 75% requirement. Current percentage: {{$json.percentage}}%."
+        "method": "POST",
+        "url": "http://localhost:5000/api/v1/automation-logs/whatsapp-dispatch",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "X-Automation-Token",
+              "value": "campusflow_secret"
+            }
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "phone_number",
+              "value": "=+1234567890"
+            },
+            {
+              "name": "message",
+              "value": "=Warning: Your attendance in {{$json.code}} is below the 75% requirement. Current percentage: {{$json.percentage}}%."
+            }
+          ]
+        },
+        "options": {}
       },
       "id": "node-3",
       "name": "Send Warning WhatsApp",

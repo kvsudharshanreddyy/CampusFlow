@@ -45,7 +45,31 @@
     },
     {
       "parameters": {
-        "message": "Daily CampusFlow Roundup: You have {{$json.tasks.pending}} pending tasks and {{$json.today_events_count}} events scheduled today."
+        "method": "POST",
+        "url": "http://localhost:5000/api/v1/automation-logs/whatsapp-dispatch",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "X-Automation-Token",
+              "value": "campusflow_secret"
+            }
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "phone_number",
+              "value": "=+1234567890"
+            },
+            {
+              "name": "message",
+              "value": "=Daily CampusFlow Roundup: You have {{$json.tasks.pending}} pending tasks and {{$json.today_events_count}} events scheduled today."
+            }
+          ]
+        },
+        "options": {}
       },
       "id": "node-3",
       "name": "Send Daily Summary WhatsApp",

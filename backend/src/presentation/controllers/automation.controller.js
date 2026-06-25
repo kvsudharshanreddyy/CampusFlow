@@ -1,5 +1,6 @@
 const automationLogRepository = require('../../infrastructure/database/automationLogRepository');
 const logger = require('../../utils/logger');
+const whatsAppService = require('../../infrastructure/services/whatsapp.service');
 
 class AutomationController {
   async getLogs(req, res, next) {
@@ -39,6 +40,20 @@ class AutomationController {
       }
 
       res.status(201).json({ status: 'success', data: log });
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  async dispatchWhatsApp(req, res, next) {
+    try {
+      const { phone_number, message } = req.body;
+      if (!phone_number || !message) {
+        return res.status(400).json({ status: 'error', message: 'phone_number and message are required' });
+      }
+
+      const log = await whatsAppService.sendMessage(phone_number, message);
+      res.status(200).json({ status: 'success', data: log });
     } catch (error) {
       next(error);
     }
