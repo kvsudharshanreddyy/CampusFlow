@@ -82,7 +82,7 @@ app.use(`${API_PREFIX}/calendar-events`, calendarEventRoutes);
 app.use(`${API_PREFIX}/notifications`, notificationRoutes);
 app.use(`${API_PREFIX}/attendance`, attendanceRoutes);
 app.use(`${API_PREFIX}/automation-logs`, rateLimiter({ windowMs: 60 * 1000, max: 60, message: 'Too many webhook triggers, please wait a minute.' }), automationRoutes);
-app.use(`${API_PREFIX}/ai`, rateLimiter({ windowMs: 60 * 1000, max: 10, message: 'Too many AI inquiries, please wait a minute.' }), aiRoutes);
+app.use(`${API_PREFIX}/ai`, rateLimiter({ windowMs: 60 * 1000, max: 100, message: 'Too many AI inquiries, please wait a minute.' }), aiRoutes);
 app.use(`${API_PREFIX}/subjects`, subjectRoutes);
 app.use(`${API_PREFIX}/placement`, placementRoutes);
 app.use(`${API_PREFIX}/groups`, groupRoutes);

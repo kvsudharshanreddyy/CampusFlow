@@ -1,25 +1,23 @@
 {
+  "id": "HVOER4dgQQ07J0kx",
   "name": "Calendar Sync",
   "nodes": [
     {
       "parameters": {
-        "pollTimes": {
-          "rule": [
-            {
-              "field": "cronExpression",
-              "expression": "*/10 * * * *"
-            }
-          ]
-        }
+        "httpMethod": "POST",
+        "path": "calendar-sync",
+        "responseMode": "onReceived",
+        "options": {}
       },
       "id": "node-1",
-      "name": "Google Calendar Trigger",
-      "type": "n8n-nodes-base.googleCalendarTrigger",
-      "typeVersion": 1,
+      "name": "Calendar Sync Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
       "position": [
         200,
         300
-      ]
+      ],
+      "webhookId": "calendar-sync-webhook"
     },
     {
       "parameters": {
@@ -29,8 +27,12 @@
         "headerParameters": {
           "parameters": [
             {
-              "name": "Authorization",
-              "value": "Bearer dev_token"
+              "name": "X-Automation-Token",
+              "value": "campusflow_secret"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
             }
           ]
         },
@@ -39,23 +41,27 @@
           "parameters": [
             {
               "name": "provider_event_id",
-              "value": "={{$json.id}}"
+              "value": "={{$json.body.provider_event_id || $json.body.id || ''}}"
             },
             {
               "name": "title",
-              "value": "={{$json.summary}}"
+              "value": "={{$json.body.title || $json.body.summary || 'Calendar Event'}}"
             },
             {
               "name": "description",
-              "value": "={{$json.description}}"
+              "value": "={{$json.body.description || ''}}"
             },
             {
               "name": "start_time",
-              "value": "={{$json.start.dateTime}}"
+              "value": "={{$json.body.start_time || $json.body.start || new Date().toISOString()}}"
             },
             {
               "name": "end_time",
-              "value": "={{$json.end.dateTime}}"
+              "value": "={{$json.body.end_time || $json.body.end || new Date(Date.now() + 3600000).toISOString()}}"
+            },
+            {
+              "name": "event_type",
+              "value": "={{$json.body.event_type || 'synced'}}"
             }
           ]
         }
@@ -68,14 +74,69 @@
         450,
         300
       ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://localhost:5000/api/v1/automation-logs/webhooks",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "X-Automation-Token",
+              "value": "campusflow_secret"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "workflow_name",
+              "value": "Calendar Sync"
+            },
+            {
+              "name": "status",
+              "value": "success"
+            },
+            {
+              "name": "message",
+              "value": "Calendar event synced successfully."
+            }
+          ]
+        }
+      },
+      "id": "node-3",
+      "name": "Log Execution",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [
+        700,
+        300
+      ]
     }
   ],
   "connections": {
-    "Google Calendar Trigger": {
+    "Calendar Sync Webhook": {
       "main": [
         [
           {
             "node": "Add to Local Calendar",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Add to Local Calendar": {
+      "main": [
+        [
+          {
+            "node": "Log Execution",
             "type": "main",
             "index": 0
           }

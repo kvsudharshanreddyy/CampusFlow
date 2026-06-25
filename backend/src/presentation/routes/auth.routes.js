@@ -86,4 +86,22 @@ router.post('/login', validate(authValidation.login), authController.login);
  */
 router.get('/me', authMiddleware, authController.getMe);
 
+/**
+ * @swagger
+ * /api/v1/auth/google:
+ *   get:
+ *     summary: Initiate Google OAuth2 login
+ *     tags: [Auth]
+ */
+router.get('/google', authController.googleAuthInitiate);
+
+/**
+ * @swagger
+ * /api/v1/auth/google/callback:
+ *   get:
+ *     summary: Google OAuth2 callback
+ *     tags: [Auth]
+ */
+router.get('/google/callback', authController.googleAuthCallback);
+
 module.exports = router;

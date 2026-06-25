@@ -8,12 +8,39 @@ class WhatsAppService {
    */
   async sendMessage(phoneNumber, message) {
     logger.info(`[WhatsApp Service] Sending message to ${phoneNumber}: "${message}"`);
+    
+    let status = 'sent';
+    
+    // Add real Twilio execution if env vars are present
+    if (process.env.TWILIO_ACCOUNT_SID && process.env.TWILIO_AUTH_TOKEN) {
+      try {
+        const twilio = require('twilio');
+        const client = twilio(process.env.TWILIO_ACCOUNT_SID, process.env.TWILIO_AUTH_TOKEN);
+        
+        // Ensure phone number has whatsapp: prefix
+        const toPhone = phoneNumber.startsWith('whatsapp:') ? phoneNumber : `whatsapp:${phoneNumber}`;
+        const fromPhone = process.env.TWILIO_WHATSAPP_NUMBER || 'whatsapp:+14155238886'; // default twilio sandbox
+        
+        const response = await client.messages.create({
+          body: message,
+          from: fromPhone,
+          to: toPhone
+        });
+        
+        logger.info(`[WhatsApp Service] Twilio Message SID: ${response.sid}`);
+      } catch (twilioErr) {
+        logger.error(`[WhatsApp Service] Twilio Error: ${twilioErr.message}`);
+        status = 'failed';
+      }
+    } else {
+      logger.warn(`[WhatsApp Service] Twilio credentials missing. Falling back to log-only mock mode.`);
+    }
 
     const logEntry = {
       phone_number: phoneNumber,
       message_content: message,
       direction: 'outbound',
-      status: 'sent',
+      status: status,
       created_at: new Date().toISOString()
     };
 

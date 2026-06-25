@@ -111,14 +111,39 @@
     },
     {
       "parameters": {
-        "phoneNumber": "=+1234567890",
-        "message": "=CampusFlow Smart Deadline Alert ⏰\n\nHere is your AI-optimized task priority checklist for today:\n\n{{ $node[\"Groq AI Prioritization\"].json.choices[0].message.content }}",
-        "options": {}
+        "method": "POST",
+        "url": "http://localhost:5000/api/v1/automation-logs/whatsapp-dispatch",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "X-Automation-Token",
+              "value": "campusflow_secret"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "phone_number",
+              "value": "=+1234567890"
+            },
+            {
+              "name": "message",
+              "value": "=CampusFlow Smart Deadline Alert \u23f0\n\nHere is your AI-optimized task priority checklist for today:\n\n{{ $node[\"Groq AI Prioritization\"].json.choices[0].message.content }}"
+            }
+          ]
+        }
       },
       "id": "whatsapp-dispatcher",
       "name": "WhatsApp Dispatcher",
-      "type": "n8n-nodes-base.twilio",
-      "typeVersion": 1,
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
       "position": [
         860,
         340
@@ -232,5 +257,6 @@
   "settings": {},
   "meta": {
     "instanceId": "campusflow-n8n"
-  }
+  },
+  "id": "BTpCD7SRhtPsEGrv"
 }

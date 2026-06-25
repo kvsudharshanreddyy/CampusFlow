@@ -102,14 +102,39 @@
     },
     {
       "parameters": {
-        "phoneNumber": "=+1234567890",
-        "message": "=CampusFlow Attendance Alert ⚠️\n\nYour attendance in {{ $node[\"Calculate Risk Metrics\"].json.subject_code }} ({{ $node[\"Calculate Risk Metrics\"].json.subject_name }}) is currently {{ $node[\"Calculate Risk Metrics\"].json.percentage }}% (Target: >= 75%).\n\nAI Prediction & Action Plan:\n{{ $json.choices[0].message.content }}",
-        "options": {}
+        "method": "POST",
+        "url": "http://localhost:5000/api/v1/automation-logs/whatsapp-dispatch",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "X-Automation-Token",
+              "value": "campusflow_secret"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "phone_number",
+              "value": "=+1234567890"
+            },
+            {
+              "name": "message",
+              "value": "=CampusFlow Attendance Alert \u26a0\ufe0f\n\nYour attendance in {{ $node[\"Calculate Risk Metrics\"].json.subject_code }} ({{ $node[\"Calculate Risk Metrics\"].json.subject_name }}) is currently {{ $node[\"Calculate Risk Metrics\"].json.percentage }}% (Target: >= 75%).\n\nAI Prediction & Action Plan:\n{{ $json.choices[0].message.content }}"
+            }
+          ]
+        }
       },
       "id": "twilio-whatsapp-warning",
       "name": "Twilio WhatsApp Warning",
-      "type": "n8n-nodes-base.twilio",
-      "typeVersion": 1,
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
       "position": [
         1080,
         240
@@ -218,5 +243,6 @@
   "settings": {},
   "meta": {
     "instanceId": "campusflow-n8n"
-  }
+  },
+  "id": "g8L3H1XM0v0AryLd"
 }

@@ -55,14 +55,39 @@
     },
     {
       "parameters": {
-        "phoneNumber": "=+1234567890",
-        "message": "=CampusFlow Notice Summary 📢\n\nTitle: {{ $node[\"New Notice Webhook\"].json.body.title }}\n\nAI Summary:\n{{ $json.choices[0].message.content }}",
-        "options": {}
+        "method": "POST",
+        "url": "http://localhost:5000/api/v1/automation-logs/whatsapp-dispatch",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "X-Automation-Token",
+              "value": "campusflow_secret"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "phone_number",
+              "value": "=+1234567890"
+            },
+            {
+              "name": "message",
+              "value": "=CampusFlow Notice Summary \ud83d\udce2\n\nTitle: {{ $node[\"New Notice Webhook\"].json.body.title }}\n\nAI Summary:\n{{ $json.choices[0].message.content }}"
+            }
+          ]
+        }
       },
       "id": "whatsapp-broadcast",
       "name": "WhatsApp Broadcast",
-      "type": "n8n-nodes-base.twilio",
-      "typeVersion": 1,
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
       "position": [
         640,
         240
@@ -149,5 +174,6 @@
   "settings": {},
   "meta": {
     "instanceId": "campusflow-n8n"
-  }
+  },
+  "id": "iZiCCzDFA14ZwRvM"
 }

@@ -77,14 +77,39 @@
     },
     {
       "parameters": {
-        "phoneNumber": "=+1234567890",
-        "message": "=CampusFlow Placement Tracker 💼\n\nYour application for {{ $node[\"Placement Webhook Trigger\"].json.body.role }} at {{ $node[\"Placement Webhook Trigger\"].json.body.company }} has updated to 'Interviewing'!\n\nAI Coach Prep Questions:\n{{ $json.choices[0].message.content }}",
-        "options": {}
+        "method": "POST",
+        "url": "http://localhost:5000/api/v1/automation-logs/whatsapp-dispatch",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "X-Automation-Token",
+              "value": "campusflow_secret"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "phone_number",
+              "value": "=+1234567890"
+            },
+            {
+              "name": "message",
+              "value": "=CampusFlow Placement Tracker \ud83d\udcbc\n\nYour application for {{ $node[\"Placement Webhook Trigger\"].json.body.role }} at {{ $node[\"Placement Webhook Trigger\"].json.body.company }} has updated to 'Interviewing'!\n\nAI Coach Prep Questions:\n{{ $json.choices[0].message.content }}"
+            }
+          ]
+        }
       },
       "id": "twilio-whatsapp-prep-alert",
       "name": "Twilio WhatsApp Prep Alert",
-      "type": "n8n-nodes-base.twilio",
-      "typeVersion": 1,
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
       "position": [
         620,
         340
@@ -187,5 +212,6 @@
   "settings": {},
   "meta": {
     "instanceId": "campusflow-n8n"
-  }
+  },
+  "id": "lSqBl8Ko0JkOgfSN"
 }

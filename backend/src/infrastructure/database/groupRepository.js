@@ -2,13 +2,29 @@ const supabase = require('./supabase');
 
 class GroupRepository {
   async findAll() {
-    const { data, error } = await supabase
+    const { data: groups, error } = await supabase
       .from('study_groups')
-      .select('*, profiles:created_by(first_name, last_name)')
+      .select('*')
       .order('created_at', { ascending: false });
 
     if (error) throw error;
-    return data || [];
+    if (!groups || groups.length === 0) return [];
+
+    const userIds = [...new Set(groups.map(g => g.created_by))];
+    const { data: profiles } = await supabase
+      .from('profiles')
+      .select('id, first_name, last_name')
+      .in('id', userIds);
+
+    const profileMap = (profiles || []).reduce((acc, p) => {
+      acc[p.id] = p;
+      return acc;
+    }, {});
+
+    return groups.map(g => ({
+      ...g,
+      profiles: profileMap[g.created_by] || null
+    }));
   }
 
   async findById(id) {
@@ -37,13 +53,29 @@ class GroupRepository {
   }
 
   async getMembers(groupId) {
-    const { data, error } = await supabase
+    const { data: members, error } = await supabase
       .from('group_members')
-      .select('*, profiles:user_id(first_name, last_name, avatar_url)')
+      .select('*')
       .eq('group_id', groupId);
 
     if (error) throw error;
-    return data || [];
+    if (!members || members.length === 0) return [];
+
+    const userIds = [...new Set(members.map(m => m.user_id))];
+    const { data: profiles } = await supabase
+      .from('profiles')
+      .select('id, first_name, last_name, avatar_url')
+      .in('id', userIds);
+
+    const profileMap = (profiles || []).reduce((acc, p) => {
+      acc[p.id] = p;
+      return acc;
+    }, {});
+
+    return members.map(m => ({
+      ...m,
+      profiles: profileMap[m.user_id] || null
+    }));
   }
 
   async addMember(groupId, userId, role = 'member') {

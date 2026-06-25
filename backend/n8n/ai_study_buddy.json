@@ -57,14 +57,39 @@
     },
     {
       "parameters": {
-        "phoneNumber": "={{ $node[\"Webhook Trigger\"].json.body.phone_number }}",
-        "message": "=CampusFlow AI Study Buddy 🎓\n\nQuery: {{ $node[\"Webhook Trigger\"].json.body.message }}\n\nAnswer:\n{{ $json.choices[0].message.content }}",
-        "options": {}
+        "method": "POST",
+        "url": "http://localhost:5000/api/v1/automation-logs/whatsapp-dispatch",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "X-Automation-Token",
+              "value": "campusflow_secret"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "phone_number",
+              "value": "={{ $node[\"Webhook Trigger\"].json.body.phone_number }}"
+            },
+            {
+              "name": "message",
+              "value": "=CampusFlow AI Study Buddy \ud83c\udf93\n\nQuery: {{ $node[\"Webhook Trigger\"].json.body.message }}\n\nAnswer:\n{{ $json.choices[0].message.content }}"
+            }
+          ]
+        }
       },
       "id": "twilio-whatsapp-send",
       "name": "Twilio WhatsApp Send",
-      "type": "n8n-nodes-base.twilio",
-      "typeVersion": 1,
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
       "position": [
         690,
         300
@@ -151,5 +176,6 @@
   "settings": {},
   "meta": {
     "instanceId": "campusflow-n8n"
-  }
+  },
+  "id": "caPez9iXvfavc24L"
 }

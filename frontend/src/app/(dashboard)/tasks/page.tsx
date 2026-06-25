@@ -1,21 +1,16 @@
 "use client";
 
 import { useState } from "react";
-import { motion } from "framer-motion";
-import { Plus, CheckSquare, Clock, CheckCircle2, Filter } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
+import { Plus, CheckSquare, Clock, CheckCircle2, Filter, X, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { Skeleton } from "@/components/ui/skeleton";
+import { useTasks, useCreateTask, useUpdateTask, useDeleteTask } from "@/hooks/useTasks";
+import { useForm } from "react-hook-form";
 import type { Task } from "@/types";
-
-const mockTasks: Task[] = [
-  { id: "1", user_id: "u1", title: "CS101 Assignment 3 — Data Structures", subject_id: "CS101", description: "Implement a binary search tree with insert, delete, and traversal operations.", status: "pending", due_date: "2026-06-28T18:00:00Z", created_at: "", updated_at: "" },
-  { id: "2", user_id: "u1", title: "Calculus Problem Set — Chapter 7", subject_id: "MA201", description: "Complete exercises 7.1 through 7.15.", status: "in-progress", due_date: "2026-06-29T18:00:00Z", created_at: "", updated_at: "" },
-  { id: "3", user_id: "u1", title: "AI Lab Report — Neural Networks", subject_id: "AI301", description: "Write a 1500-word report on backpropagation.", status: "completed", due_date: "2026-06-25T18:00:00Z", created_at: "", updated_at: "" },
-  { id: "4", user_id: "u1", title: "Database ER Diagram", subject_id: "DB201", description: "Design ER diagram for the library management system.", status: "pending", due_date: "2026-07-01T18:00:00Z", created_at: "", updated_at: "" },
-  { id: "5", user_id: "u1", title: "Resume Update — Summer Internship", subject_id: undefined, description: "Add recent project and update skills section.", status: "in-progress", due_date: "2026-06-27T18:00:00Z", created_at: "", updated_at: "" },
-];
 
 const filters = ["all", "pending", "in-progress", "completed"] as const;
 type Filter = typeof filters[number];
@@ -23,7 +18,7 @@ type Filter = typeof filters[number];
 const statusIcon = {
   pending: <Clock className="h-3.5 w-3.5 text-muted-foreground" />,
   "in-progress": <CheckSquare className="h-3.5 w-3.5 text-amber-500" />,
-  completed: <CheckCircle2 className="h-3.5 w-3.5 text-green-500" />,
+  completed: <CheckCircle2 className="h-3.5 w-3.5 text-emerald-500 drop-shadow-[0_0_8px_rgba(16,185,129,0.5)]" />,
 };
 
 const statusBadge: Record<Task["status"], "secondary" | "warning" | "success"> = {
@@ -32,101 +27,151 @@ const statusBadge: Record<Task["status"], "secondary" | "warning" | "success"> =
   completed: "success",
 };
 
+interface CreateTaskForm {
+  title: string;
+  description: string;
+  due_date: string;
+}
+
 export default function TasksPage() {
   const [filter, setFilter] = useState<Filter>("all");
   const [search, setSearch] = useState("");
+  const [showAdd, setShowAdd] = useState(false);
 
-  const filtered = mockTasks.filter((t) => {
+  const { data: tasksResponse, isLoading } = useTasks();
+  const tasks = tasksResponse?.data || [];
+  const createTask = useCreateTask();
+  const updateTask = useUpdateTask();
+  const deleteTask = useDeleteTask();
+
+  const { register, handleSubmit, reset } = useForm<CreateTaskForm>();
+
+  const filtered = tasks.filter((t) => {
     const matchStatus = filter === "all" || t.status === filter;
     const matchSearch = t.title.toLowerCase().includes(search.toLowerCase());
     return matchStatus && matchSearch;
   });
 
   const counts = {
-    all: mockTasks.length,
-    pending: mockTasks.filter((t) => t.status === "pending").length,
-    "in-progress": mockTasks.filter((t) => t.status === "in-progress").length,
-    completed: mockTasks.filter((t) => t.status === "completed").length,
+    all: tasks.length,
+    pending: tasks.filter((t) => t.status === "pending").length,
+    "in-progress": tasks.filter((t) => t.status === "in-progress").length,
+    completed: tasks.filter((t) => t.status === "completed").length,
+  };
+
+  const onSubmit = async (form: CreateTaskForm) => {
+    await createTask.mutateAsync({
+      title: form.title,
+      description: form.description,
+      due_date: new Date(form.due_date).toISOString(),
+    });
+    reset();
+    setShowAdd(false);
   };
 
   return (
-    <div className="p-5 lg:p-6 space-y-5 max-w-4xl mx-auto">
+    <div className="p-5 lg:p-6 space-y-5 max-w-4xl mx-auto relative">
+      {/* Background Gradient Orbs */}
+      <div className="absolute top-[-100px] right-[-100px] w-96 h-96 bg-violet-500/20 rounded-full blur-[100px] -z-10 pointer-events-none" />
+      <div className="absolute bottom-[-100px] left-[-100px] w-96 h-96 bg-cyan-500/20 rounded-full blur-[100px] -z-10 pointer-events-none" />
+
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-xl font-bold">Tasks</h1>
+          <h1 className="text-2xl font-black bg-clip-text text-transparent bg-gradient-to-r from-violet-400 to-cyan-400">Tasks</h1>
           <p className="text-sm text-muted-foreground mt-0.5">{counts.pending} pending · {counts["in-progress"]} in progress</p>
         </div>
-        <Button size="sm" className="gap-1.5">
-          <Plus className="h-3.5 w-3.5" /> Add Task
+        <Button onClick={() => setShowAdd(true)} className="gap-1.5 bg-gradient-to-r from-violet-600 to-cyan-600 hover:from-violet-500 hover:to-cyan-500 text-white shadow-[0_0_15px_rgba(139,92,246,0.5)] transition-all duration-300 hover:scale-105 border-0">
+          <Plus className="h-4 w-4" /> Add Task
         </Button>
       </div>
 
       {/* Filters + search */}
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
-        <div className="flex items-center gap-1 p-1 bg-muted rounded-lg">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center backdrop-blur-md bg-background/40 p-2 rounded-xl border border-border/50">
+        <div className="flex items-center gap-1 p-1 bg-muted/50 rounded-lg">
           {filters.map((f) => (
             <button
               key={f}
               onClick={() => setFilter(f)}
-              className={`px-3 py-1.5 rounded-md text-xs font-medium transition-all duration-150 capitalize ${
+              className={`px-3 py-1.5 rounded-md text-xs font-semibold transition-all duration-300 capitalize ${
                 filter === f
-                  ? "bg-background text-foreground shadow-sm"
-                  : "text-muted-foreground hover:text-foreground"
+                  ? "bg-gradient-to-r from-violet-500/20 to-cyan-500/20 text-foreground shadow-sm border border-violet-500/30"
+                  : "text-muted-foreground hover:text-foreground hover:bg-muted/80"
               }`}
             >
-              {f} <span className="ml-1 text-muted-foreground/70">{counts[f]}</span>
+              {f} <span className="ml-1 text-muted-foreground/70 bg-background/50 px-1.5 rounded-full">{counts[f]}</span>
             </button>
           ))}
         </div>
-        <div className="flex-1 sm:max-w-xs">
+        <div className="flex-1 sm:max-w-xs ml-auto">
           <Input
             placeholder="Search tasks..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="h-8 text-xs bg-muted border-0 focus-visible:ring-1"
+            className="h-9 text-sm bg-muted/30 border-border/50 focus-visible:ring-violet-500/50 focus-visible:border-violet-500/50 backdrop-blur-sm"
           />
         </div>
       </div>
 
       {/* Task list */}
-      <div className="space-y-2">
-        {filtered.length === 0 ? (
-          <div className="py-16 text-center text-muted-foreground">
-            <CheckSquare className="h-10 w-10 mx-auto mb-3 opacity-30" />
-            <p className="text-sm">No tasks found</p>
+      <div className="space-y-3">
+        {isLoading ? (
+          Array.from({ length: 4 }).map((_, i) => (
+            <Skeleton key={i} className="h-24 w-full rounded-xl bg-muted/40 backdrop-blur-sm" />
+          ))
+        ) : filtered.length === 0 ? (
+          <div className="py-20 text-center text-muted-foreground backdrop-blur-md bg-background/30 rounded-2xl border border-border/30">
+            <CheckSquare className="h-12 w-12 mx-auto mb-4 opacity-30 text-violet-400 drop-shadow-[0_0_10px_rgba(139,92,246,0.3)]" />
+            <p className="text-base font-medium">No tasks found</p>
+            <p className="text-xs text-muted-foreground/60 mt-1">Add a new task to get started.</p>
           </div>
         ) : (
           filtered.map((task, i) => (
             <motion.div
               key={task.id}
-              initial={{ opacity: 0, y: 8 }}
+              initial={{ opacity: 0, y: 15 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: i * 0.05 }}
+              transition={{ delay: i * 0.05, duration: 0.4, ease: "easeOut" }}
             >
-              <Card className="hover:border-primary/30 transition-colors cursor-pointer group">
-                <CardContent className="p-4 flex items-start gap-3">
-                  <div className="mt-0.5">{statusIcon[task.status]}</div>
+              <Card className="hover:border-violet-500/50 transition-all duration-300 cursor-pointer group bg-background/40 backdrop-blur-xl border-border/50 hover:shadow-[0_0_25px_rgba(139,92,246,0.15)] hover:-translate-y-1">
+                <CardContent className="p-4 flex items-start gap-4">
+                  <div className="mt-1 p-2 rounded-lg bg-background/50 border border-border/50 group-hover:border-violet-500/30 transition-colors">
+                    {statusIcon[task.status]}
+                  </div>
                   <div className="flex-1 min-w-0">
                     <div className="flex items-start justify-between gap-2">
-                      <p className={`text-sm font-medium ${task.status === "completed" ? "line-through text-muted-foreground" : "text-foreground"}`}>
+                      <p className={`text-sm font-bold ${task.status === "completed" ? "line-through text-muted-foreground" : "text-foreground group-hover:text-violet-100 transition-colors"}`}>
                         {task.title}
                       </p>
-                      <Badge variant={statusBadge[task.status]} className="shrink-0 text-xs capitalize">
-                        {task.status}
-                      </Badge>
+                      <div className="flex items-center gap-2">
+                        <select
+                          value={task.status}
+                          onClick={(e) => e.stopPropagation()}
+                          onChange={(e) => updateTask.mutate({ id: task.id, updates: { status: e.target.value as any } })}
+                          className="text-xs bg-background/50 border border-border/50 rounded px-2 py-1 focus:outline-none focus:ring-1 focus:ring-violet-500/50 backdrop-blur-sm cursor-pointer hover:border-violet-500/30 transition-colors"
+                        >
+                          <option value="pending">Pending</option>
+                          <option value="in-progress">In Progress</option>
+                          <option value="completed">Completed</option>
+                        </select>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={(e) => { e.stopPropagation(); deleteTask.mutate(task.id); }}
+                          className="h-7 w-7 opacity-0 group-hover:opacity-100 text-destructive hover:bg-destructive/20 hover:text-red-400 transition-all"
+                        >
+                          <Trash2 className="h-3.5 w-3.5" />
+                        </Button>
+                      </div>
                     </div>
                     {task.description && (
-                      <p className="text-xs text-muted-foreground mt-1 line-clamp-1">{task.description}</p>
+                      <p className="text-xs text-muted-foreground mt-1.5 line-clamp-2">{task.description}</p>
                     )}
-                    <div className="flex items-center gap-3 mt-2">
-                      {task.subject_id && (
-                        <span className="text-xs bg-primary/10 text-primary px-2 py-0.5 rounded-full">{task.subject_id}</span>
-                      )}
+                    <div className="flex items-center gap-3 mt-3">
                       {task.due_date && (
-                        <span className="text-xs text-muted-foreground">
-                          Due {new Date(task.due_date).toLocaleDateString("en-US", { month: "short", day: "numeric" })}
-                        </span>
+                        <Badge variant="outline" className="text-[10px] bg-background/50 backdrop-blur-sm border-border/50 text-muted-foreground py-0">
+                          Due {new Date(task.due_date).toLocaleDateString("en-US", { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" })}
+                        </Badge>
                       )}
                     </div>
                   </div>
@@ -136,6 +181,75 @@ export default function TasksPage() {
           ))
         )}
       </div>
+
+      {/* Add Task Modal */}
+      <AnimatePresence>
+        {showAdd && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+              onClick={() => setShowAdd(false)}
+            />
+            <motion.div
+              initial={{ scale: 0.95, opacity: 0, y: 20 }}
+              animate={{ scale: 1, opacity: 1, y: 0 }}
+              exit={{ scale: 0.95, opacity: 0, y: 20 }}
+              className="relative bg-background/80 backdrop-blur-2xl border border-white/10 rounded-2xl max-w-md w-full p-6 space-y-5 shadow-[0_0_50px_rgba(139,92,246,0.15)]"
+            >
+              <div className="absolute inset-0 bg-gradient-to-br from-violet-500/5 to-cyan-500/5 rounded-2xl pointer-events-none" />
+              
+              <div className="flex items-center justify-between border-b border-white/10 pb-3 relative z-10">
+                <h3 className="font-bold text-lg bg-clip-text text-transparent bg-gradient-to-r from-violet-400 to-cyan-400">Create New Task</h3>
+                <button onClick={() => setShowAdd(false)} className="text-muted-foreground hover:text-foreground transition-colors p-1 hover:bg-white/5 rounded-lg">
+                  <X className="h-5 w-5" />
+                </button>
+              </div>
+
+              <form onSubmit={handleSubmit(onSubmit)} className="space-y-4 relative z-10">
+                <div className="space-y-1.5">
+                  <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Title *</label>
+                  <Input 
+                    placeholder="e.g. Database Assignment" 
+                    className="bg-black/20 border-white/10 focus-visible:ring-violet-500/50"
+                    {...register("title", { required: true })} 
+                  />
+                </div>
+
+                <div className="space-y-1.5">
+                  <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Description</label>
+                  <Input 
+                    placeholder="Details about the task..." 
+                    className="bg-black/20 border-white/10 focus-visible:ring-violet-500/50"
+                    {...register("description")} 
+                  />
+                </div>
+
+                <div className="space-y-1.5">
+                  <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Due Date *</label>
+                  <Input 
+                    type="datetime-local" 
+                    className="bg-black/20 border-white/10 focus-visible:ring-violet-500/50 [color-scheme:dark]"
+                    {...register("due_date", { required: true })} 
+                  />
+                </div>
+
+                <div className="pt-2">
+                  <Button 
+                    type="submit" 
+                    className="w-full bg-gradient-to-r from-violet-600 to-cyan-600 hover:from-violet-500 hover:to-cyan-500 text-white shadow-[0_0_20px_rgba(139,92,246,0.3)] transition-all duration-300 hover:scale-[1.02] border-0"
+                    disabled={createTask.isPending}
+                  >
+                    {createTask.isPending ? "Creating..." : "Save Task"}
+                  </Button>
+                </div>
+              </form>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

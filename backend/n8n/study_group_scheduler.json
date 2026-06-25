@@ -40,14 +40,39 @@
     },
     {
       "parameters": {
-        "phoneNumber": "=+1234567890",
-        "message": "=CampusFlow Study Group Notification 👥\n\nA new study session has been scheduled!\n\nGroup: {{ $node[\"Session Webhook Trigger\"].json.body.group_name }}\nTopic: {{ $node[\"Session Webhook Trigger\"].json.body.topic }}\nTime: {{ new Date($node[\"Session Webhook Trigger\"].json.body.start_time).toLocaleString() }}\n\nSee you there! 📝",
-        "options": {}
+        "method": "POST",
+        "url": "http://localhost:5000/api/v1/automation-logs/whatsapp-dispatch",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "X-Automation-Token",
+              "value": "campusflow_secret"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "phone_number",
+              "value": "=+1234567890"
+            },
+            {
+              "name": "message",
+              "value": "=CampusFlow Study Group Notification \ud83d\udc65\n\nA new study session has been scheduled!\n\nGroup: {{ $node[\"Session Webhook Trigger\"].json.body.group_name }}\nTopic: {{ $node[\"Session Webhook Trigger\"].json.body.topic }}\nTime: {{ new Date($node[\"Session Webhook Trigger\"].json.body.start_time).toLocaleString() }}\n\nSee you there! \ud83d\udcdd"
+            }
+          ]
+        }
       },
       "id": "twilio-whatsapp-members",
       "name": "Twilio WhatsApp Members",
-      "type": "n8n-nodes-base.twilio",
-      "typeVersion": 1,
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
       "position": [
         420,
         340
@@ -139,5 +164,6 @@
   "settings": {},
   "meta": {
     "instanceId": "campusflow-n8n"
-  }
+  },
+  "id": "yLeTnUD456zY3M8W"
 }
